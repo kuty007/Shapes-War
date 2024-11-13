@@ -22,7 +22,7 @@ class CShape : public Component
 public:
 	sf::CircleShape circle;
 	CShape() = default;
-	CShape(float radius, size_t Npoints, const sf::Color& fillcolor, sf::Color& outline, float lineThick):
+	CShape(float radius, size_t Npoints, const sf::Color& fillcolor, sf::Color& outline, float lineThick) :
 		circle(radius, Npoints) {
 		circle.setFillColor(fillcolor);
 		circle.setOutlineColor(outline);
@@ -52,6 +52,7 @@ public:
 
 class CLifeSpan : public Component
 {
+ public:
 	int lifeTime = 0;
 	int RemainingLifeTime = 0;
 	CLifeSpan() = default;
@@ -67,8 +68,11 @@ public:
 	bool left = false;
 	bool right = false;
 	bool shoot = false;
+	bool ability = false;
 	CInput() = default;
-	CInput(bool u, bool d, bool l, bool r, bool s)
-		: up(u), down(d), left(l), right(r), shoot(s) {}
+	CInput(bool u, bool d, bool l, bool r, bool s , bool a)
+		: up(u), down(d), left(l), right(r), shoot(s), ability(a) {}
 };
 
+class CAbility : public Component
+{};
