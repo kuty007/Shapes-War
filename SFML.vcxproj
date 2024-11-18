@@ -183,6 +183,12 @@
   <ItemGroup>
     <ResourceCompile Include="Shapes_war.rc" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="config2.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="fonts\doto.ttf" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

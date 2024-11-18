@@ -3,7 +3,8 @@
 #include <SFML/System/Vector2.hpp>
 class Component
 {
-	bool m_isActive = true;
+public:
+	bool exists = true;
 };
 
 class CTransform : public Component
