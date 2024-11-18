@@ -50,6 +50,10 @@ void Game::init(const std::string& config)
 std::shared_ptr<Entity>Game::player() {
 	auto player = m_entityManager.getEntities(EntityType::Player);
 	assert(player.size() == 1);
+	//check if player is active
+	assert(player.front()->IsActive());
+	//check if player has lifespan component
+	assert(!player.front()->has<CLifeSpan>());
 	return player.front();
 	
 
@@ -63,6 +67,24 @@ void Game::setPaused(bool paused)
 
 void Game::sMovement()
 {
+	//rest player velocity to 0
+	auto playerEntity = player();
+
+	auto& playerTransform = playerEntity->get<CTransform>();
+	auto& playerInput = playerEntity->get<CInput>();
+	playerTransform.valocity = { 0,0 };
+	if (playerInput.up) {
+		playerTransform.valocity.y = -m_playerConfig.S;
+	}
+	if (playerInput.down) {
+		playerTransform.valocity.y = m_playerConfig.S;
+	}
+	if (playerInput.left) {
+		playerTransform.valocity.x = -m_playerConfig.S;
+	}
+	if (playerInput.right) {
+		playerTransform.valocity.x = m_playerConfig.S;
+	}
 	auto entities = m_entityManager.getEntities();
 	for (auto& entity : entities)
 	{
@@ -105,92 +127,117 @@ void Game::sUserInput()
 		{
 			m_running = false;
 		}
-	}
-	//switch case for up down left right shoot using mouse
-	if (event.type == sf::Event::KeyPressed) {
-		auto playerEntity = player();
-		auto& playerInput = playerEntity->get<CInput>();
-		switch (event.key.code)
-		{
-		case sf::Keyboard::W:
-			playerInput.up = true;
-			break;
-		case sf::Keyboard::S:
-			playerInput.down = true;
-			break;
-		case sf::Keyboard::A:
-			playerInput.left = true;
-			break;
-		case sf::Keyboard::D:
-			playerInput.right = true;
-			break;
-		case sf::Keyboard::Space:
-			playerInput.ability = true;
-			break;
-		case sf::Keyboard::P:
-			setPaused(!m_paused);
-			break;
-		case sf::Keyboard::Escape:
-			m_running = false;
-			break;
-		default:
-			break;
-		}
 
-		
-	}
-	if (event.type == sf::Event::KeyReleased) {
-		auto playerEntity = player();
-		auto& playerInput = playerEntity->get<CInput>();
-		switch (event.key.code)
-		{
-		case sf::Keyboard::W:
-			playerInput.up = false;
-			break;
-		case sf::Keyboard::S:
-			playerInput.down = false;
-			break;
-		case sf::Keyboard::A:
-			playerInput.left = false;
-			break;
-		case sf::Keyboard::D:
-			playerInput.right = false;
-			break;
-		case sf::Keyboard::Space:
-			playerInput.ability = false;
-			break;
-		default:
-			break;
+		//switch case for up down left right shoot using mouse
+		if (event.type == sf::Event::KeyPressed) {
+			auto playerEntity = player();
+			auto& playerInput = playerEntity->get<CInput>();
+			switch (event.key.code)
+			{
+			case sf::Keyboard::W:
+				playerInput.up = true;
+				break;
+			case sf::Keyboard::S:
+				playerInput.down = true;
+				break;
+			case sf::Keyboard::A:
+				playerInput.left = true;
+				break;
+			case sf::Keyboard::D:
+				playerInput.right = true;
+				break;
+			case sf::Keyboard::Space:
+				playerInput.ability = true;
+				break;
+			case sf::Keyboard::P:
+				setPaused(!m_paused);
+				break;
+			case sf::Keyboard::Escape:
+				m_running = false;
+				break;
+			default:
+				break;
+			}
+
+
 		}
-	}
-	if (event.type == sf::Event::MouseButtonPressed) {
-		auto playerEntity = player();
-		auto& playerInput = playerEntity->get<CInput>();
-		if (event.mouseButton.button == sf::Mouse::Left) {
-			playerInput.shoot = true;
-			sf::Vector2f mousePos = m_window.mapPixelToCoords(sf::Mouse::getPosition(m_window));
-			//check if game is nor paused and if so spawn projectile
-			if (!m_paused) {
-				sSpawnProjectile(playerEntity, mousePos);
+		if (event.type == sf::Event::KeyReleased) {
+			auto playerEntity = player();
+			auto& playerInput = playerEntity->get<CInput>();
+			switch (event.key.code)
+			{
+			case sf::Keyboard::W:
+				playerInput.up = false;
+				break;
+			case sf::Keyboard::S:
+				playerInput.down = false;
+				break;
+			case sf::Keyboard::A:
+				playerInput.left = false;
+				break;
+			case sf::Keyboard::D:
+				playerInput.right = false;
+				break;
+			case sf::Keyboard::Space:
+				playerInput.ability = false;
+				break;
+			default:
+				break;
+			}
+		}
+		if (event.type == sf::Event::MouseButtonPressed) {
+			auto playerEntity = player();
+			auto& playerInput = playerEntity->get<CInput>();
+			if (event.mouseButton.button == sf::Mouse::Left) {
+				playerInput.shoot = true;
+				sf::Vector2f mousePos = m_window.mapPixelToCoords(sf::Mouse::getPosition(m_window));
+				//check if game is nor paused and if so spawn projectile
+				if (!m_paused) {
+					sSpawnProjectile(playerEntity, mousePos);
+				}
+			}
+
+		}
+		if (event.type == sf::Event::MouseButtonReleased) {
+			auto playerEntity = player();
+			auto& playerInput = playerEntity->get<CInput>();
+			if (event.mouseButton.button == sf::Mouse::Left) {
+				playerInput.shoot = false;
 			}
 		}
 
+
+
+
 	}
-	if (event.type == sf::Event::MouseButtonReleased) {
-		auto playerEntity = player();
-		auto& playerInput = playerEntity->get<CInput>();
-		if (event.mouseButton.button == sf::Mouse::Left) {
-			playerInput.shoot = false;
-		}
-	}
-
-
-
-
 }
 
 void Game::sCollision()
 {
+	//check collision between Projectile and enemy
+	auto projectiles = m_entityManager.getEntities(EntityType::Projectile);
+	auto enemies = m_entityManager.getEntities(EntityType::Enemy);
+
+	for (auto& projectile : projectiles) {
+		if (projectile->has<CCollison>() && projectile->has<CTransform>()) {
+			auto& projectileCollision = projectile->get<CCollison>();
+			auto& projectileTransform = projectile->get<CTransform>();
+			for (auto& enemy : enemies) {
+				if (enemy->has<CCollison>() && enemy->has<CTransform>()) {
+					auto& enemyCollision = enemy->get<CCollison>();
+					auto& enemyTransform = enemy->get<CTransform>();
+					float distance = (pow(projectileTransform.position.x - enemyTransform.position.x, 2) + pow(projectileTransform.position.y - enemyTransform.position.y, 2));
+					if (distance < (pow (projectileCollision.radius + enemyCollision.radius,2))) {
+						projectile->Destroy();
+						enemy->Destroy();
+						m_score += 10;
+					}
+				}
+			}
+		}
+	}
+
+
 }
 
 void Game::sEnemySpawnr()
@@ -212,13 +259,32 @@ void Game::sScore()
 {
 }
 
+
 void Game::sLifeSpan()
 {
+	//get all entities with lifespan component'
+	for (const auto e : m_entityManager.getEntities()) {
+		if (e->has<CLifeSpan>()) {
+			auto& lifeSpan = e->get<CLifeSpan>();
+			lifeSpan.lifeTime--;
+			if (lifeSpan.lifeTime <= 0) {
+				e->Destroy();
+			}
+		}
+	}
+
 }
 
 void Game::sGUI()
 {
+	ImGui::Begin("Game Info");
+	ImGui::Text("Score: %d", m_score);
+	if (ImGui::Button("Exit")) {
+		m_running = false;
+	}
+	ImGui::End();
 }
+
 
 void Game::sSpawnPlayer()
 {
@@ -228,13 +294,7 @@ void Game::sSpawnPlayer()
 	auto& shape = player->add<CShape>();
 	auto& collision = player->add<CCollison>();
 	auto& score = player->add<CScore>();
-	auto& lifeSpan = player->add<CLifeSpan>();
 	auto& input = player->add<CInput>();
-	//set up player
-	//position of middle of the screen
-
-
-
 	transform.position = { m_window.getSize().x / 2.0f,m_window.getSize().y / 2.0f};
 	transform.rotation = 0;
 	transform.valocity = { 0,0 };
@@ -257,7 +317,8 @@ void Game::sSpawnEnemy()
 	auto& transform = enemy->add<CTransform>();
 	auto& shape = enemy->add<CShape>();
 	auto& collision = enemy->add<CCollison>();
-	transform.position = {getRandomValue ((float) m_enemyConfig.SR, (float)m_window.getSize().x- m_enemyConfig.SR), getRandomValue((float)m_enemyConfig.SR,(float) m_window.getSize().y- m_enemyConfig.SR) };
+	transform.position = {getRandomValue ((float) m_enemyConfig.SR, (float)m_window.getSize().x- m_enemyConfig.SR), 
+		getRandomValue((float)m_enemyConfig.SR,(float) m_window.getSize().y- m_enemyConfig.SR) };
 	//give random velocity to enemy in random direction between VMIN and VMAX
 	float angle = getRandomValue(0, 360) * 3.14159f / 180.0f;
 	transform.valocity = { cos(angle) * getRandomValue(m_enemyConfig.SMIN, m_enemyConfig.SMAX), sin(angle) * getRandomValue(m_enemyConfig.SMIN, m_enemyConfig.SMAX) };
@@ -270,6 +331,7 @@ void Game::sSpawnEnemy()
 	shape.circle.setOutlineColor(sf::Color(m_enemyConfig.OR, m_enemyConfig.OG, m_enemyConfig.OB));
 	shape.circle.setOutlineThickness(m_enemyConfig.OT);
 	shape.circle.setOrigin(m_enemyConfig.SR, m_enemyConfig.SR);
+	collision.radius = m_enemyConfig.CR;
 	m_lastEnemySpawn = m_currentFrame;
 
 
@@ -282,6 +344,29 @@ void Game::sSpawnSmallEnemies(std::shared_ptr<Entity> entity)
 
 void Game::sSpawnProjectile(std::shared_ptr<Entity> entity, const sf::Vector2f& mousePos)
 {
+	auto projectile = m_entityManager.AddEntity(EntityType::Projectile);
+	auto& transform = projectile->add<CTransform>();
+	auto& shape = projectile->add<CShape>();
+	auto& collision = projectile->add<CCollison>();
+	auto& lifeSpan = projectile->add<CLifeSpan>();
+	transform.position = entity->get<CTransform>().position;
+	transform.rotation = 0;
+	//get direction from player to mouse
+	sf::Vector2f direction = mousePos - transform.position;
+	//normalize direction
+	float length = sqrt(direction.x * direction.x + direction.y * direction.y);
+	direction.x /= length;
+	direction.y /= length;
+	//set velocity to direction * speed
+	transform.valocity = direction * m_projectileConfig.S;
+	lifeSpan.lifeTime = m_projectileConfig.L;
+	shape.circle.setRadius(m_projectileConfig.SR);
+	shape.circle.setPointCount(m_projectileConfig.V);
+	shape.circle.setFillColor(sf::Color(m_projectileConfig.FR, m_projectileConfig.FG, m_projectileConfig.FB));
+	shape.circle.setOutlineColor(sf::Color(m_projectileConfig.OR, m_projectileConfig.OG, m_projectileConfig.OB));
+	shape.circle.setOutlineThickness(m_projectileConfig.OT);
+	shape.circle.setOrigin(m_projectileConfig.SR, m_projectileConfig.SR);
+	collision.radius = m_projectileConfig.CR;
 }
 
 Game::Game(const std::string& configFilePath)
@@ -299,9 +384,11 @@ void Game::run()
 		m_entityManager.Update();
 		ImGui::SFML::Update(m_window, m_deltaClock.restart());
 		sEnemySpawnr();
+		sUserInput();
 		sMovement();
 		sCollision();
-		sUserInput();
+
+		sLifeSpan();
 		sGUI();
 		sRender();
 		m_currentFrame++;	

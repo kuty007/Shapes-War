@@ -4,7 +4,7 @@
 class Component
 {
 public:
-	bool exists = true;
+	bool exists = false;
 };
 
 class CTransform : public Component
@@ -71,8 +71,7 @@ public:
 	bool shoot = false;
 	bool ability = false;
 	CInput() = default;
-	CInput(bool u, bool d, bool l, bool r, bool s , bool a)
-		: up(u), down(d), left(l), right(r), shoot(s), ability(a) {}
+	
 };
 
 class CAbility : public Component

@@ -6,7 +6,9 @@
 enum class EntityType {
 	Player,
 	Enemy,
+	SmallEnemy,
 	Projectile,
+	AbilityProjectile,
 };
 
 
@@ -42,9 +44,10 @@ public:
     }
 
     template<typename T>
-    bool has() const {
-        return get<T>().exists;
-    }
+	bool has() {
+		return std::get<T>(m_components).exists;
+	}
+
 
     template<typename T, typename... TArgs>
     T& add(TArgs&&... mArgs) {
