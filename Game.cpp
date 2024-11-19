@@ -4,19 +4,20 @@
 #include <iostream>
 #include <string>
 #include "random.cpp"
+#include <set> 
 
 void Game::init(const std::string& config)
 {
 	//load screen width, height, framerate, and fullscreen from config file
 	std::ifstream fin(config);
-	std::string token;	
+	std::string token;
 	int width, height, frameRate;
 	bool isFullscreen;
 	fin >> token >> width >> height >> frameRate >> isFullscreen;
 	if (isFullscreen) {
 		m_window.create(sf::VideoMode(width, height), "Shapes War", sf::Style::Fullscreen);
 	}
-	else{
+	else {
 		m_window.create(sf::VideoMode(width, height), "Shapes War");
 	}
 	m_window.setFramerateLimit(frameRate);
@@ -35,27 +36,22 @@ void Game::init(const std::string& config)
 
 	// player config
 	PlayerConfig& p = m_playerConfig;
-	fin >> token >> p.SR >> p.CR >> p.S >>p.FR>> p.FG >> p.FB >> p.OR >> p.OG >> p.OB >> p.OT >> p.V;
+	fin >> token >> p.SR >> p.CR >> p.S >> p.FR >> p.FG >> p.FB >> p.OR >> p.OG >> p.OB >> p.OT >> p.V;
 
 	// enemy config
-	EnemyConfig& e = m_enemyConfig;	 
+	EnemyConfig& e = m_enemyConfig;
 	fin >> token >> e.SR >> e.CR >> e.SMIN >> e.SMAX >> e.OR >> e.OG >> e.OB >> e.OT >> e.VMIN >> e.VMAX >> e.L >> e.SI;
 
 	// bullet config
-	ProjectileConfig& b = m_projectileConfig;  
+	ProjectileConfig& b = m_projectileConfig;
 	fin >> token >> b.SR >> b.CR >> b.S >> b.FR >> b.FG >> b.FB >> b.OR >> b.OG >> b.OB >> b.OT >> b.V >> b.L;
 	this->sSpawnPlayer();
 
 }
 std::shared_ptr<Entity>Game::player() {
 	auto player = m_entityManager.getEntities(EntityType::Player);
-	assert(player.size() == 1);
-	//check if player is active
-	assert(player.front()->IsActive());
-	//check if player has lifespan component
-	assert(!player.front()->has<CLifeSpan>());
 	return player.front();
-	
+
 
 }
 
@@ -67,9 +63,9 @@ void Game::setPaused(bool paused)
 
 void Game::sMovement()
 {
+	if (m_stopMovement) return;
 	//rest player velocity to 0
 	auto playerEntity = player();
-
 	auto& playerTransform = playerEntity->get<CTransform>();
 	auto& playerInput = playerEntity->get<CInput>();
 	playerTransform.valocity = { 0,0 };
@@ -110,9 +106,24 @@ void Game::sRender()
 			auto& transform = entity->get<CTransform>();
 			shape.setPosition(transform.position);
 			shape.setRotation(transform.rotation);
+			if (entity->has<CLifeSpan>()) {
+				// set opacity proportional to it's remaining lifespan
+				auto& lifeSpan = entity->get<CLifeSpan>();
+				int alpha = 255 * lifeSpan.RemainingLifeTime / lifeSpan.lifeTime;
+				shape.setFillColor(sf::Color(shape.getFillColor().r, shape.getFillColor().g, shape.getFillColor().b, alpha));
+				// set outline color with same alpha value
+				shape.setOutlineColor(sf::Color(shape.getOutlineColor().r, shape.getOutlineColor().g, shape.getOutlineColor().b, alpha));
+
+
+			}
+
 			m_window.draw(shape);
 		}
 	}
+	//render text
+	m_text.setString("Score: " + std::to_string(m_score));
+	m_window.draw(m_text);
+
 	ImGui::SFML::Render(m_window);
 	m_window.display();
 }
@@ -127,6 +138,34 @@ void Game::sUserInput()
 		{
 			m_running = false;
 		}
+		if (event.type == sf::Event::LostFocus)
+		{
+			setPaused(true);
+		}
+		if (event.type == sf::Event::GainedFocus)
+		{
+			setPaused(false);
+		}
+		// List of keys to process
+		std::set<sf::Keyboard::Key> keysToProcess = {
+			sf::Keyboard::W,
+			sf::Keyboard::S,
+			sf::Keyboard::A,
+			sf::Keyboard::D,
+			sf::Keyboard::Space,
+			sf::Keyboard::P,
+			sf::Keyboard::Escape
+		};
+
+		// Ignore all other keys
+		if (event.type == sf::Event::KeyPressed || event.type == sf::Event::KeyReleased)
+		{
+			if (keysToProcess.find(event.key.code) == keysToProcess.end())
+			{
+				continue;
+			}
+		}
+
 
 		//switch case for up down left right shoot using mouse
 		if (event.type == sf::Event::KeyPressed) {
@@ -214,6 +253,7 @@ void Game::sUserInput()
 
 void Game::sCollision()
 {
+	if (m_stopCollision) return;
 	//check collision between Projectile and enemy
 	auto projectiles = m_entityManager.getEntities(EntityType::Projectile);
 	auto enemies = m_entityManager.getEntities(EntityType::Enemy);
@@ -227,12 +267,88 @@ void Game::sCollision()
 					auto& enemyCollision = enemy->get<CCollison>();
 					auto& enemyTransform = enemy->get<CTransform>();
 					float distance = (pow(projectileTransform.position.x - enemyTransform.position.x, 2) + pow(projectileTransform.position.y - enemyTransform.position.y, 2));
-					if (distance < (pow (projectileCollision.radius + enemyCollision.radius,2))) {
+					if (distance < (pow(projectileCollision.radius + enemyCollision.radius, 2))) {
 						projectile->Destroy();
 						enemy->Destroy();
+						sSpawnSmallEnemies(enemy);
 						m_score += 10;
 					}
 				}
+			}
+			//do the same for small enemy
+			auto smallEnemies = m_entityManager.getEntities(EntityType::SmallEnemy);
+			for (auto& enemy : smallEnemies) {
+				if (enemy->has<CCollison>() && enemy->has<CTransform>()) {
+					auto& enemyCollision = enemy->get<CCollison>();
+					auto& enemyTransform = enemy->get<CTransform>();
+					float distance = (pow(projectileTransform.position.x - enemyTransform.position.x, 2) + pow(projectileTransform.position.y - enemyTransform.position.y, 2));
+					if (distance < (pow(projectileCollision.radius + enemyCollision.radius, 2))) {
+						projectile->Destroy();
+						enemy->Destroy();
+						m_score += 5;
+					}
+				}
+			}
+		}
+	}
+	//for enamy if its colide with screen edge reverse its velocity
+	for (auto& enemy : enemies) {
+		if (enemy->has<CCollison>() && enemy->has<CTransform>()) {
+			auto& enemyCollision = enemy->get<CCollison>();
+			auto& enemyTransform = enemy->get<CTransform>();
+			if (enemyTransform.position.x - enemyCollision.radius < 0 || enemyTransform.position.x + enemyCollision.radius > m_window.getSize().x) {
+				enemyTransform.valocity.x *= -1;
+			}
+			if (enemyTransform.position.y - enemyCollision.radius < 0 || enemyTransform.position.y + enemyCollision.radius > m_window.getSize().y) {
+				enemyTransform.valocity.y *= -1;
+			}
+		}
+	}
+	//for player if its colide with screen edge dont let it go out of screen
+	auto playerEntity = player();
+	auto& playerCollision = playerEntity->get<CCollison>();
+	auto& playerTransform = playerEntity->get<CTransform>();
+	if (playerTransform.position.x - playerCollision.radius < 0) {
+		playerTransform.position.x = playerCollision.radius;
+	}
+	if (playerTransform.position.x + playerCollision.radius > m_window.getSize().x) {
+		playerTransform.position.x = m_window.getSize().x - playerCollision.radius;
+	}
+	if (playerTransform.position.y - playerCollision.radius < 0) {
+		playerTransform.position.y = playerCollision.radius;
+	}
+	if (playerTransform.position.y + playerCollision.radius > m_window.getSize().y) {
+		playerTransform.position.y = m_window.getSize().y - playerCollision.radius;
+	}
+	//check collision between player and enemy
+	for (auto& enemy : enemies) {
+		if (enemy->has<CCollison>() && enemy->has<CTransform>()) {
+			auto& enemyCollision = enemy->get<CCollison>();
+			auto& enemyTransform = enemy->get<CTransform>();
+			float distance = (pow(playerTransform.position.x - enemyTransform.position.x, 2) + pow(playerTransform.position.y - enemyTransform.position.y, 2));
+			if (distance < (pow(playerCollision.radius + enemyCollision.radius, 2))) {
+				playerEntity->Destroy();
+				sSpawnPlayer();
+				m_score = 0;
+				enemy->Destroy();
+				sSpawnSmallEnemies(enemy);
+
+
+			}
+		}
+	}
+	//check collision between player and small enemy
+	auto smallEnemies = m_entityManager.getEntities(EntityType::SmallEnemy);
+	for (auto& enemy : smallEnemies) {
+		if (enemy->has<CCollison>() && enemy->has<CTransform>()) {
+			auto& enemyCollision = enemy->get<CCollison>();
+			auto& enemyTransform = enemy->get<CTransform>();
+			float distance = (pow(playerTransform.position.x - enemyTransform.position.x, 2) + pow(playerTransform.position.y - enemyTransform.position.y, 2));
+			if (distance < (pow(playerCollision.radius + enemyCollision.radius, 2))) {
+				playerEntity->Destroy();
+				sSpawnPlayer();
+				m_score = 0;
+				enemy->Destroy();
 			}
 		}
 	}
@@ -242,6 +358,7 @@ void Game::sCollision()
 
 void Game::sEnemySpawnr()
 {
+	if (m_stopEnemySpawn) return;
 	if (m_currentFrame - m_lastEnemySpawn > m_enemyConfig.SI) {
 		sSpawnEnemy();
 	}
@@ -262,12 +379,13 @@ void Game::sScore()
 
 void Game::sLifeSpan()
 {
+	if (m_stopLifeSpan) return;
 	//get all entities with lifespan component'
 	for (const auto e : m_entityManager.getEntities()) {
 		if (e->has<CLifeSpan>()) {
 			auto& lifeSpan = e->get<CLifeSpan>();
-			lifeSpan.lifeTime--;
-			if (lifeSpan.lifeTime <= 0) {
+			lifeSpan.RemainingLifeTime--;
+			if (lifeSpan.RemainingLifeTime <= 0) {
 				e->Destroy();
 			}
 		}
@@ -278,12 +396,81 @@ void Game::sLifeSpan()
 void Game::sGUI()
 {
 	ImGui::Begin("Game Info");
-	ImGui::Text("Score: %d", m_score);
-	if (ImGui::Button("Exit")) {
-		m_running = false;
+
+	if (ImGui::BeginTabBar("Game Settings"))
+	{
+		// Tab for general game information
+		if (ImGui::BeginTabItem("Info"))
+		{
+			ImGui::Text("Score: %d", m_score);
+			if (ImGui::Button("Exit")) {
+				m_running = false;
+			}
+			ImGui::EndTabItem();
+		}
+
+		// Tab for spawning entities manually
+		if (ImGui::BeginTabItem("Spawn"))
+		{
+			if (ImGui::Button("Spawn Enemy")) {
+				sSpawnEnemy();
+			}
+			ImGui::EndTabItem();
+		}
+
+		// Tab for changing spawn rate
+		if (ImGui::BeginTabItem("Spawn Rate"))
+		{
+			ImGui::SliderInt("Enemy Spawn Interval", &m_enemyConfig.SI, 1, 1000);
+			ImGui::EndTabItem();
+		}
+
+		// Tab for stopping systems
+		if (ImGui::BeginTabItem("Systems"))
+		{
+			ImGui::Checkbox("Stop Movement", &m_stopMovement);
+			ImGui::Checkbox("Stop Spawning", &m_stopEnemySpawn);
+			ImGui::Checkbox("Stop Life Span", &m_stopLifeSpan);
+			ImGui::Checkbox("Stop Collision", &m_stopCollision);
+			ImGui::EndTabItem();
+		}
+
+		// Tab for controlling entities
+		if (ImGui::BeginTabItem("Entities"))
+		{
+			auto entities = m_entityManager.getEntities();
+			std::vector<EntityType> entityTypes = { EntityType::Player, EntityType::Enemy, EntityType::SmallEnemy, EntityType::Projectile };
+			static int entityTypeIndex = 0;
+			ImGui::Combo("Entity Type", &entityTypeIndex, "Player\0Enemy\0Small Enemy\0Projectile\0");
+
+			for (const auto& entity : entities) {
+				if (entity->GetType() == entityTypes[entityTypeIndex]) {
+					ImGui::Text("Entity ID: %zu", entity->GetID());
+					if (entity->has<CTransform>()) {
+						auto& transform = entity->get<CTransform>();
+						ImGui::Text("Position: (%.2f, %.2f)", transform.position.x, transform.position.y);
+						ImGui::Text("Velocity: (%.2f, %.2f)", transform.valocity.x, transform.valocity.y);
+					}
+					if (entity->has<CLifeSpan>()) {
+						auto& lifeSpan = entity->get<CLifeSpan>();
+						ImGui::Text("Life Time: %d", lifeSpan.lifeTime);
+						ImGui::Text("Remaining Life Time: %d", lifeSpan.RemainingLifeTime);
+					}
+					ImGui::Separator();
+					if (ImGui::Button("Destroy Entity")) {
+						entity->Destroy();
+					}
+				}
+			}
+			ImGui::EndTabItem();
+		}
+
+		ImGui::EndTabBar();
 	}
+
 	ImGui::End();
 }
+
 
 
 void Game::sSpawnPlayer()
@@ -295,7 +482,7 @@ void Game::sSpawnPlayer()
 	auto& collision = player->add<CCollison>();
 	auto& score = player->add<CScore>();
 	auto& input = player->add<CInput>();
-	transform.position = { m_window.getSize().x / 2.0f,m_window.getSize().y / 2.0f};
+	transform.position = { m_window.getSize().x / 2.0f,m_window.getSize().y / 2.0f };
 	transform.rotation = 0;
 	transform.valocity = { 0,0 };
 	shape.circle.setRadius(m_playerConfig.SR);
@@ -317,8 +504,8 @@ void Game::sSpawnEnemy()
 	auto& transform = enemy->add<CTransform>();
 	auto& shape = enemy->add<CShape>();
 	auto& collision = enemy->add<CCollison>();
-	transform.position = {getRandomValue ((float) m_enemyConfig.SR, (float)m_window.getSize().x- m_enemyConfig.SR), 
-		getRandomValue((float)m_enemyConfig.SR,(float) m_window.getSize().y- m_enemyConfig.SR) };
+	transform.position = { getRandomValue((float)m_enemyConfig.SR, (float)m_window.getSize().x - m_enemyConfig.SR),
+		getRandomValue((float)m_enemyConfig.SR,(float)m_window.getSize().y - m_enemyConfig.SR) };
 	//give random velocity to enemy in random direction between VMIN and VMAX
 	float angle = getRandomValue(0, 360) * 3.14159f / 180.0f;
 	transform.valocity = { cos(angle) * getRandomValue(m_enemyConfig.SMIN, m_enemyConfig.SMAX), sin(angle) * getRandomValue(m_enemyConfig.SMIN, m_enemyConfig.SMAX) };
@@ -335,11 +522,43 @@ void Game::sSpawnEnemy()
 	m_lastEnemySpawn = m_currentFrame;
 
 
-	
+
 }
 
 void Game::sSpawnSmallEnemies(std::shared_ptr<Entity> entity)
+
 {
+	//get the num of vertices of the entity
+	int numVertices = entity->get<CShape>().circle.getPointCount();
+	int step = 360 / numVertices;
+	//spawn small enemies at each vertex
+	for (int i = 0; i < numVertices; i++) {
+		auto enemy = m_entityManager.AddEntity(EntityType::SmallEnemy);
+		auto& transform = enemy->add<CTransform>();
+		auto& shape = enemy->add<CShape>();
+		auto& collision = enemy->add<CCollison>();
+		auto& lifeSpan = enemy->add<CLifeSpan>();
+		transform.position = entity->get<CTransform>().position;
+		// Each small enemy travel outwards at fixed intervals equal to
+		// 360/vertices
+		float angle = i * step * 3.14159f / 180.0f;
+		transform.valocity = { cos(angle) * m_enemyConfig.SMIN, sin(angle) * m_enemyConfig.SMIN };
+		transform.rotation = 0;
+		shape.circle.setRadius(m_enemyConfig.SR / 2);
+		//set point 
+		shape.circle.setPointCount(numVertices);
+		//coler same as entity
+		shape.circle.setFillColor(entity->get<CShape>().circle.getFillColor());
+		shape.circle.setOutlineColor(sf::Color(m_enemyConfig.OR, m_enemyConfig.OG, m_enemyConfig.OB));
+		shape.circle.setOutlineThickness(m_enemyConfig.OT);
+		shape.circle.setOrigin(m_enemyConfig.SR / 2, m_enemyConfig.SR / 2);
+		collision.radius = m_enemyConfig.CR / 2;
+		lifeSpan.lifeTime = m_enemyConfig.L;
+		lifeSpan.RemainingLifeTime = m_enemyConfig.L;
+
+
+
+	}
 }
 
 void Game::sSpawnProjectile(std::shared_ptr<Entity> entity, const sf::Vector2f& mousePos)
@@ -360,6 +579,7 @@ void Game::sSpawnProjectile(std::shared_ptr<Entity> entity, const sf::Vector2f& 
 	//set velocity to direction * speed
 	transform.valocity = direction * m_projectileConfig.S;
 	lifeSpan.lifeTime = m_projectileConfig.L;
+	lifeSpan.RemainingLifeTime = m_projectileConfig.L;
 	shape.circle.setRadius(m_projectileConfig.SR);
 	shape.circle.setPointCount(m_projectileConfig.V);
 	shape.circle.setFillColor(sf::Color(m_projectileConfig.FR, m_projectileConfig.FG, m_projectileConfig.FB));
@@ -387,11 +607,10 @@ void Game::run()
 		sUserInput();
 		sMovement();
 		sCollision();
-
 		sLifeSpan();
 		sGUI();
 		sRender();
-		m_currentFrame++;	
+		m_currentFrame++;
 
 
 	}

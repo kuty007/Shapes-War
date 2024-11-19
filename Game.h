@@ -22,6 +22,10 @@ class Game
     int m_score = 0;
     int m_currentFrame = 0;
     int m_lastEnemySpawn = 0;
+    bool m_stopMovement = false;
+	bool m_stopEnemySpawn = false;
+	bool m_stopLifeSpan = false;
+	bool m_stopCollision = false;
     bool m_paused = false;
     bool m_running = true;
     void init(const std::string& config);
