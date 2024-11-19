@@ -6,6 +6,7 @@
 #include "SFML/Graphics.hpp"
 #include "imgui-SFML.h"
 
+
 struct PlayerConfig { int SR, CR, FR, FG, FB, OR, OG, OB, OT, V; float S; };
 struct EnemyConfig { int SR, CR, OR, OG, OB, OT, VMIN, VMAX, L, SI; float SMIN, SMAX; };
 struct ProjectileConfig { int SR, CR, FR, FG, FB, OR, OG, OB, OT, V, L; float S; };
@@ -15,6 +16,7 @@ class Game
     EntityManager m_entityManager;
     sf::Font m_font;
     sf::Text m_text;
+    //add music component
     PlayerConfig m_playerConfig;
     EnemyConfig m_enemyConfig;
     ProjectileConfig m_projectileConfig;
@@ -23,19 +25,20 @@ class Game
     int m_currentFrame = 0;
     int m_lastEnemySpawn = 0;
     bool m_stopMovement = false;
-	bool m_stopEnemySpawn = false;
-	bool m_stopLifeSpan = false;
-	bool m_stopCollision = false;
+    bool m_stopEnemySpawn = false;
+    bool m_stopLifeSpan = false;
+    bool m_stopCollision = false;
     bool m_paused = false;
     bool m_running = true;
     void init(const std::string& config);
+    void loadMusic(std::string& musicFile);
     void setPaused(bool paused);
     void sMovement(); // Entity position/movement update
     void sRender(); // Render all entities
     void sUserInput(); // User input
     void sCollision(); // Collision detection
     void sEnemySpawnr(); // Spawn enemies
-    void sProjectileSpawn(); // Spawn projectiles
+    void sAblityProjectileSpawn(std::shared_ptr<Entity> entity); // Spawn projectiles
     void sScore(); // Update score
     void sLifeSpan(); // Update life span
     void sGUI(); // Render GUI

@@ -4,17 +4,17 @@
 #include <tuple>
 //create Enum for all the entities
 enum class EntityType {
-	Player,
-	Enemy,
-	SmallEnemy,
-	Projectile,
-	AbilityProjectile,
+    Player,
+    Enemy,
+    SmallEnemy,
+    Projectile,
+    AbilityProjectile,
 };
 
 
 
-using ComponentTuple = std::tuple<CTransform, 
-	CShape, CCollison, CScore, CLifeSpan,CInput>;
+using ComponentTuple = std::tuple<CTransform,
+    CShape, CCollison, CScore, CLifeSpan, CInput, CAbility>;
 
 
 class Entity {
@@ -44,9 +44,9 @@ public:
     }
 
     template<typename T>
-	bool has() {
-		return std::get<T>(m_components).exists;
-	}
+    bool has() {
+        return std::get<T>(m_components).exists;
+    }
 
 
     template<typename T, typename... TArgs>

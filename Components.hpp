@@ -15,7 +15,8 @@ public:
 	float rotation = 0;
 	CTransform() = default;
 	CTransform(sf::Vector2f pos, sf::Vector2f val, float rot)
-		: position(pos), valocity(val), rotation(rot) {}
+		: position(pos), valocity(val), rotation(rot) {
+	}
 };
 
 class CShape : public Component
@@ -38,7 +39,8 @@ public:
 	float radius = 0;
 	CCollison() = default;
 	CCollison(float r)
-		: radius(r) {}
+		: radius(r) {
+	}
 
 };
 
@@ -48,17 +50,19 @@ public:
 	int score = 0;
 	CScore() = default;
 	CScore(int sc)
-		: score(sc) {}
+		: score(sc) {
+	}
 };
 
 class CLifeSpan : public Component
 {
- public:
+public:
 	int lifeTime = 0;
 	int RemainingLifeTime = 0;
 	CLifeSpan() = default;
 	CLifeSpan(int life)
-		: lifeTime(life), RemainingLifeTime(life) {}
+		: lifeTime(life), RemainingLifeTime(life) {
+	}
 };
 
 class CInput : public Component
@@ -71,8 +75,12 @@ public:
 	bool shoot = false;
 	bool ability = false;
 	CInput() = default;
-	
+
 };
 
 class CAbility : public Component
-{};
+{
+public:
+	int lastUsed = 0;
+	CAbility() = default;
+};

@@ -187,6 +187,9 @@ void Game::sUserInput()
 				break;
 			case sf::Keyboard::Space:
 				playerInput.ability = true;
+				if (!m_paused) {
+					sAblityProjectileSpawn(playerEntity);
+				}
 				break;
 			case sf::Keyboard::P:
 				setPaused(!m_paused);
@@ -256,6 +259,7 @@ void Game::sCollision()
 	if (m_stopCollision) return;
 	//check collision between Projectile and enemy
 	auto projectiles = m_entityManager.getEntities(EntityType::Projectile);
+	auto abilityProjectiles = m_entityManager.getEntities(EntityType::AbilityProjectile);
 	auto enemies = m_entityManager.getEntities(EntityType::Enemy);
 
 	for (auto& projectile : projectiles) {
@@ -291,6 +295,53 @@ void Game::sCollision()
 			}
 		}
 	}
+	//do the same for ability projectile
+
+	for (auto& proj : abilityProjectiles) {
+		if (proj->has<CCollison>() && proj->has<CTransform>()) {
+			auto& projCollision = proj->get<CCollison>();
+			auto& projTransform = proj->get<CTransform>();
+			for (auto& enemy : enemies) {
+				if (enemy->has<CCollison>() && enemy->has<CTransform>()) {
+					auto& enemyCollision = enemy->get<CCollison>();
+					auto& enemyTransform = enemy->get<CTransform>();
+					float distance = (pow(projTransform.position.x - enemyTransform.position.x, 2) + pow(projTransform.position.y - enemyTransform.position.y, 2));
+					if (distance < (pow(projCollision.radius + enemyCollision.radius, 2))) {
+						enemy->Destroy();
+						sSpawnSmallEnemies(enemy);
+						m_score += 10;
+					}
+				}
+			}
+			//do the same for small enemy
+			auto smallEnemies = m_entityManager.getEntities(EntityType::SmallEnemy);
+			for (auto& enemy : smallEnemies) {
+				if (enemy->has<CCollison>() && enemy->has<CTransform>()) {
+					auto& enemyCollision = enemy->get<CCollison>();
+					auto& enemyTransform = enemy->get<CTransform>();
+					float distance = (pow(projTransform.position.x - enemyTransform.position.x, 2) + pow(projTransform.position.y - enemyTransform.position.y, 2));
+					if (distance < (pow(projCollision.radius + enemyCollision.radius, 2))) {
+						enemy->Destroy();
+						m_score += 5;
+					}
+				}
+			}
+		}
+	}
+	//for ability projectile if its colide with screen edge reverse its velocity
+	for (auto& proj : abilityProjectiles) {
+		if (proj->has<CCollison>() && proj->has<CTransform>()) {
+			auto& projCollision = proj->get<CCollison>();
+			auto& projTransform = proj->get<CTransform>();
+			if (projTransform.position.x - projCollision.radius < 0 || projTransform.position.x + projCollision.radius > m_window.getSize().x) {
+				projTransform.valocity.x *= -1;
+			}
+			if (projTransform.position.y - projCollision.radius < 0 || projTransform.position.y + projCollision.radius > m_window.getSize().y) {
+				projTransform.valocity.y *= -1;
+			}
+		}
+	}
+
 	//for enamy if its colide with screen edge reverse its velocity
 	for (auto& enemy : enemies) {
 		if (enemy->has<CCollison>() && enemy->has<CTransform>()) {
@@ -368,8 +419,41 @@ void Game::sEnemySpawnr()
 
 }
 
-void Game::sProjectileSpawn()
+void Game::sAblityProjectileSpawn(std::shared_ptr<Entity> entity)
 {
+	if (m_score - player()->get<CAbility>().lastUsed < 100) {
+		return;
+	}
+
+
+	int numVertices = entity->get<CShape>().circle.getPointCount();
+	int step = 360 / numVertices;
+	//spawn small enemies at each vertex
+	for (int i = 0; i < numVertices; i++) {
+		auto abporj = m_entityManager.AddEntity(EntityType::AbilityProjectile);
+		auto& transform = abporj->add<CTransform>();
+		auto& shape = abporj->add<CShape>();
+		auto& collision = abporj->add<CCollison>();
+		auto& lifeSpan = abporj->add<CLifeSpan>();
+		transform.position = entity->get<CTransform>().position;
+		// Each small enemy travel outwards at fixed intervals equal to
+		// 360/vertices
+		float angle = i * step * 3.14159f / 180.0f;
+		transform.valocity = { cos(angle) * m_projectileConfig.S * 2, sin(angle) * m_projectileConfig.S * 2 };
+		transform.rotation = 0;
+		lifeSpan.lifeTime = m_projectileConfig.L * 3;
+		lifeSpan.RemainingLifeTime = m_projectileConfig.L * 3;
+		shape.circle.setRadius(m_projectileConfig.SR);
+		shape.circle.setPointCount(m_projectileConfig.V);
+		shape.circle.setFillColor(sf::Color(m_projectileConfig.FR, m_projectileConfig.FG, m_projectileConfig.FB));
+		shape.circle.setOutlineColor(sf::Color(m_projectileConfig.OR, m_projectileConfig.OG, m_projectileConfig.OB));
+		shape.circle.setOutlineThickness(m_projectileConfig.OT);
+		shape.circle.setOrigin(m_projectileConfig.SR, m_projectileConfig.SR);
+		collision.radius = m_projectileConfig.CR;
+		//set last used ability time
+		player()->get<CAbility>().lastUsed = m_score;
+
+	}
 }
 
 void Game::sScore()
