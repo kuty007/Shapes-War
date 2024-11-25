@@ -40,7 +40,6 @@ class Game {
     void sCollision(); // Collision detection
     void sEnemySpawnr(); // Spawn enemies
     void sAblityProjectileSpawn(std::shared_ptr<Entity> entity); // Spawn projectiles
-    void sScore(); // Update score
     void sLifeSpan(); // Update life span
     void sGUI(); // Render GUI
     void sSpawnPlayer(); // Spawn player

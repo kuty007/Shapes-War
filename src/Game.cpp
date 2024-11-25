@@ -489,8 +489,7 @@ void Game::sAblityProjectileSpawn(std::shared_ptr <Entity> entity) {
     }
 }
 
-void Game::sScore() {
-}
+
 
 
 void Game::sLifeSpan() {
