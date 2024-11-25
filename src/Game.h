@@ -5,18 +5,19 @@
 #include "EntityManager.hpp"
 #include "SFML/Graphics.hpp"
 #include "imgui-SFML.h"
+#include <SFML/Audio.hpp>
+#include "EntityConfigs.h"
+
+#define POINTS 5
 
 
-struct PlayerConfig { int SR, CR, FR, FG, FB, OR, OG, OB, OT, V; float S; };
-struct EnemyConfig { int SR, CR, OR, OG, OB, OT, VMIN, VMAX, L, SI; float SMIN, SMAX; };
-struct ProjectileConfig { int SR, CR, FR, FG, FB, OR, OG, OB, OT, V, L; float S; };
-class Game
-{
+class Game {
     sf::RenderWindow m_window;
     EntityManager m_entityManager;
+    sf::Text m_scoreText;
     sf::Font m_font;
-    sf::Text m_text;
     //add music component
+    sf::Music m_music;
     PlayerConfig m_playerConfig;
     EnemyConfig m_enemyConfig;
     ProjectileConfig m_projectileConfig;

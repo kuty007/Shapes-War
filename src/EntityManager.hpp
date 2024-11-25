@@ -1,5 +1,10 @@
 #pragma once
 #include "Entity.hpp"
+#include <memory>
+#include <map>
+#include <vector>
+#include <algorithm>
+
 using EntityVec = std::vector<std::shared_ptr<Entity>>;
 
 class EntityManager
@@ -21,7 +26,7 @@ public:
         for (auto& entity : m_entitiesToAdd) {
             m_entities.push_back(entity);
             //add to the map
-            if (m_entityMap.find(entity->GetType()) == m_entityMap.end())
+            if (m_entityMap.find(entity->GetType()) == m_entityMap.end()) // if 
             {
                 m_entityMap[entity->GetType()] = EntityVec();
             }
