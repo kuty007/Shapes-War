@@ -472,7 +472,7 @@ void Game::sAblityProjectileSpawn(std::shared_ptr <Entity> entity) {
         // Each small enemy travel outwards at fixed intervals equal to
         // 360/vertices
         float angle = i * step * 3.14159f / 180.0f;
-        transform.valocity = {cos(angle) * m_projectileConfig.S * 2, sin(angle) * m_projectileConfig.S * 2};
+        transform.valocity = {static_cast<float> (cos(angle)) * m_projectileConfig.S * 2, static_cast<float> (sin(angle)) * m_projectileConfig.S * 2};
         transform.rotation = 0;
         lifeSpan.lifeTime = m_projectileConfig.L * 3;
         lifeSpan.RemainingLifeTime = m_projectileConfig.L * 3;
@@ -612,8 +612,8 @@ void Game::sSpawnEnemy() {
                           getRandomValue((float) m_enemyConfig.SR, (float) m_window.getSize().y - m_enemyConfig.SR)};
     //give random velocity to enemy in random direction between VMIN and VMAX
     float angle = getRandomValue(0, 360) * 3.14159f / 180.0f;
-    transform.valocity = {cos(angle) * getRandomValue(m_enemyConfig.SMIN, m_enemyConfig.SMAX),
-                          sin(angle) * getRandomValue(m_enemyConfig.SMIN, m_enemyConfig.SMAX)};
+    transform.valocity = {static_cast<float> (cos(angle))* getRandomValue(m_enemyConfig.SMIN, m_enemyConfig.SMAX),
+                         static_cast<float> (sin(angle))* getRandomValue(m_enemyConfig.SMIN, m_enemyConfig.SMAX)};
     transform.rotation = 0;
     shape.circle.setRadius(m_enemyConfig.SR);
     shape.circle.setPointCount(getRandomValue(m_enemyConfig.VMIN, m_enemyConfig.VMAX));
@@ -645,7 +645,7 @@ void Game::sSpawnSmallEnemies(std::shared_ptr <Entity> entity) {
         // Each small enemy travel outwards at fixed intervals equal to
         // 360/vertices
         float angle = i * step * 3.14159f / 180.0f;
-        transform.valocity = {cos(angle) * m_enemyConfig.SMIN, sin(angle) * m_enemyConfig.SMIN};
+        transform.valocity = {static_cast<float> (cos(angle))* m_enemyConfig.SMIN, static_cast<float> (sin(angle)) * m_enemyConfig.SMIN};
         transform.rotation = 0;
         shape.circle.setRadius(m_enemyConfig.SR / 2);
         //set point
