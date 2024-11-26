@@ -48,7 +48,7 @@ The project includes a `Makefile` for building on Linux. To compile and run:
    cd bin
    ./GAME
    ```
-Here's a clearer and more refined version of your instructions for the README:
+
 
 ---
 
