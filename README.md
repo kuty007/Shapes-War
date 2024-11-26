@@ -12,9 +12,7 @@ Shapes War is a C++ project that blends SFML and ImGui to create a fast-paced ac
 - **Scoring System**: Earn points by successfully hitting and destroying shapes.
 - **ImGui Interface**: Intuitive UI that allows players to customize gameplay settings.
 - **Configuration Files**: Load and set shape properties from external files.
-- 
 ## Requirements
-
 - **C++ Compiler**: Supporting C++17 or later.
 - **SFML**: Version 2.5 or later.
 - **ImGui**: Integrated with SFML.
@@ -50,6 +48,23 @@ The project includes a `Makefile` for building on Linux. To compile and run:
    cd bin
    ./GAME
    ```
+Here's a clearer and more refined version of your instructions for the README:
+
+---
+
+## Adding Music to the Game
+
+The game includes a music file that can be loaded during gameplay. You can download free music assets from the following link:
+
+[OpenGameArt's Advanced Search for Game Assets](https://opengameart.org/art-search-advanced?keys=sample&title=&field_art_tags_tid_op=or&field_art_tags_tid=&name=&field_art_type_tid%5B%5D=9&field_art_type_tid%5B%5D=10&field_art_type_tid%5B%5D=7273&field_art_type_tid%5B%5D=14&field_art_type_tid%5B%5D=12&field_art_type_tid%5B%5D=13&field_art_type_tid%5B%5D=11&sort_by=score&sort_order=DESC&items_per_page=24&Collection=)
+
+After downloading the music file, follow these steps:
+
+1. Create a folder named `music` inside the `bin` directory of your project.
+2. Place the downloaded music file inside the `bin/music` folder.
+3. The game will automatically load the music without any further changes needed to the code.
+
+Alternatively, if you don't want to use music, you can remove the music loading section from the `Game.cpp` file to disable it.
 
 ### Cleaning Up
 To clean the build directory:
