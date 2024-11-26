@@ -81,4 +81,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ---
 
-Enjoy exploring and customizing shapes in **Shapes War**! Feedback and ideas are always appreciated. 😊
+Enjoy exploring and customizing game settings in **Shapes War**! Feedback and ideas are always appreciated. 😊
